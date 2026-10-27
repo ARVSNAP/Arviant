@@ -1,0 +1,7 @@
+{
+  "name": "Arvin Booth™",
+  "description": "A feature-packed retro and modern Photo Booth Android app with live CameraX preview, countdown timer, multiple layout strips, real-time filters, customizable frames, and high-resolution export.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
