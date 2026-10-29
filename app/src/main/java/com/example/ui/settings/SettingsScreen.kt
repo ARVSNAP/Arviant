@@ -37,7 +37,6 @@ import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.VolumeUp
-import androidx.compose.material.icons.filled.Usb
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.CloudDone
@@ -927,45 +926,6 @@ fun SettingsScreen(
                             enabled = !settings.isKioskMode || isPinUnlocked,
                             onCheckedChange = { viewModel.updateDefaultCamera(it) }
                         )
-
-                        // USB OTG & External Camera Support Info Card
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color(0x1506B6D4) // subtle cyan glass highlight
-                            ),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x3306B6D4)),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Usb,
-                                    contentDescription = "USB OTG",
-                                    tint = StudioNeonCyan,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text(
-                                        text = "Kamera Eksternal & USB OTG",
-                                        color = StudioTextPrimary,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = "Hubungkan webcam USB eksternal via kabel OTG. Anda bisa mengganti kamera secara real-time pada layar kamera ke opsi 'USB (OTG)'.",
-                                        color = StudioTextSecondary,
-                                        fontSize = 11.sp,
-                                        lineHeight = 15.sp
-                                    )
-                                }
-                            }
-                        }
                     }
                 }
             }

@@ -34,7 +34,7 @@ import java.util.concurrent.Executors
 
 /**
  * Komponen CameraPreview berbasis CameraX untuk menampilkan tayangan langsung (live feed)
- * dari kamera perangkat (Depan, Belakang, atau Kamera Eksternal/USB).
+ * dari kamera perangkat (Depan atau Belakang).
  *
  * Mendukung live preview, grid 3x3 overlay, kontrol lampu kilat/torch, pengambilan foto resolusi tinggi,
  * dan manajemen siklus hidup kamera secara otomatis.

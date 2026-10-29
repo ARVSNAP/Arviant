@@ -13,11 +13,6 @@
         android:name="android.hardware.camera.front"
         android:required="false" />
 
-    <!-- USB Host and OTG support for External USB Webcams -->
-    <uses-feature
-        android:name="android.hardware.usb.host"
-        android:required="false" />
-
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
