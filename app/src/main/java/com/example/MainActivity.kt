@@ -405,6 +405,9 @@ fun PhotoBoothApp(
                     onBackToWelcome = {
                         boothViewModel.navigateTo(AppScreen.WELCOME)
                     },
+                    onSyncCloudFrames = {
+                        boothViewModel.syncCloudFrames(force = true)
+                    },
                     onImportPngLayout = { uri, onSuccess, onError ->
                         boothViewModel.importPngLayout(uri, onSuccess, onError)
                     }

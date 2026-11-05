@@ -25,9 +25,11 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -193,8 +195,8 @@ fun LoopAnimationPlayer(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .height(380.dp),
+                .padding(horizontal = 12.dp)
+                .heightIn(min = 380.dp, max = 520.dp),
             contentAlignment = Alignment.Center
         ) {
             LoopFrameDisplay(
@@ -518,7 +520,8 @@ fun LoopFrameDisplay(
 
     Card(
         modifier = modifier
-            .widthIn(max = 290.dp)
+            .fillMaxHeight(0.96f)
+            .widthIn(max = 440.dp)
             .aspectRatio(0.72f)
             .shadow(28.dp, RoundedCornerShape(18.dp))
             .clip(RoundedCornerShape(18.dp))

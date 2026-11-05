@@ -70,6 +70,7 @@ class SettingsRepository(private val context: Context) {
         val CUSTOM_THEME_BACKGROUND_DIM = floatPreferencesKey("custom_theme_background_dim")
         val CUSTOM_THEME_BACKGROUND_PATH = stringPreferencesKey("custom_theme_background_path")
         val GRID_COLUMN_COUNT = intPreferencesKey("grid_column_count")
+        val GOOGLE_SHEETS_SCRIPT_URL = stringPreferencesKey("google_sheets_script_url")
     }
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { preferences ->
@@ -120,6 +121,8 @@ class SettingsRepository(private val context: Context) {
         val customThemeBgDim = preferences[PreferencesKeys.CUSTOM_THEME_BACKGROUND_DIM] ?: 0.25f
         val customThemeBgPath = preferences[PreferencesKeys.CUSTOM_THEME_BACKGROUND_PATH] ?: ""
         val gridColumnCount = preferences[PreferencesKeys.GRID_COLUMN_COUNT] ?: 2
+        val googleSheetsUrl = preferences[PreferencesKeys.GOOGLE_SHEETS_SCRIPT_URL]
+            ?: "https://script.google.com/macros/s/AKfycbxORrAmfXoCBUkBGYoXZebfNgcGo77clzBwhRWPA4GEmttclZS_NTMpoCwnLeuhEVeOhA/exec"
 
         val welcomeLoopPlacement = try {
             com.example.model.WelcomeLoopPlacement.valueOf(loopPlacementStr)
@@ -216,8 +219,13 @@ class SettingsRepository(private val context: Context) {
             useCustomThemeBackground = useCustomThemeBg,
             customThemeBackgroundDim = customThemeBgDim,
             customThemeBackgroundPath = customThemeBgPath,
-            gridColumnCount = gridColumnCount
+            gridColumnCount = gridColumnCount,
+            googleSheetsScriptUrl = googleSheetsUrl
         )
+    }
+
+    suspend fun updateGoogleSheetsScriptUrl(url: String) {
+        context.dataStore.edit { it[PreferencesKeys.GOOGLE_SHEETS_SCRIPT_URL] = url }
     }
 
     suspend fun updateCountdown(seconds: Int) {

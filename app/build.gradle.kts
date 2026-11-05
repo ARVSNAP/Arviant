@@ -120,7 +120,7 @@ dependencies {
   implementation(libs.okhttp)
   implementation(libs.zxing.core)
   implementation(libs.play.services.location)
-  implementation(libs.play.services.mlkit.face.detection)
+  implementation(libs.mlkit.face.detection)
   implementation(libs.retrofit)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)

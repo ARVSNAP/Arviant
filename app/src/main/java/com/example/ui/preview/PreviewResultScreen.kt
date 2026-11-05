@@ -6,6 +6,18 @@ import android.net.Uri
 import android.widget.Toast
 import coil.compose.AsyncImage
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.filled.FormatListBulleted
+import androidx.compose.material.icons.filled.AutoFixHigh
+import androidx.compose.material.icons.filled.FormatPaint
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -14,6 +26,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.PaddingValues
@@ -392,185 +405,106 @@ fun PreviewResultScreen(
             )
         }
     ) { innerPadding ->
-        Row(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Left Side: Preview Area
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+            val screenWidth = maxWidth
+            val screenHeight = maxHeight
+            val isLandscape = screenWidth > screenHeight
+            val isTabletOrWide = screenWidth >= 700.dp || (isLandscape && screenWidth >= 600.dp)
+
+            @Composable
+            fun PreviewArea(
+                isTablet: Boolean,
+                screenHeightDp: androidx.compose.ui.unit.Dp,
+                modifier: Modifier = Modifier
             ) {
-                if (uiState.isLoopViewActive) {
-                    LoopAnimationPlayer(
-                        photos = uiState.capturedPhotos,
-                        filter = uiState.selectedFilter,
-                        frameColor = uiState.selectedFrameColor,
-                        captionText = uiState.captionText,
-                        stickerEmoji = uiState.selectedSticker,
-                        loopConfig = uiState.loopConfig,
-                        isGeneratingGif = uiState.isGeneratingGif,
-                        isGeneratingMp4 = uiState.isGeneratingMp4,
-                        onSetLoopMode = onSetLoopMode,
-                        onSetLoopSpeed = onSetLoopSpeed,
-                        onSetLoopTransition = onSetLoopTransition,
-                        onSetLoopParticle = onSetLoopParticle,
-                        onTogglePlay = onToggleLoopPlaying,
-                        onSaveGif = onSaveGif,
-                        onShareGif = onShareGif,
-                        onSaveMp4 = onSaveMp4,
-                        onShareMp4 = onShareMp4,
-                        onShareToSpecificApp = onShareToSpecificApp,
-                        onOpenFullscreen = { onShowFullscreenLoop(true) }
-                    )
-                } else {
-                    Box(
+                Column(
+                    modifier = modifier,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Segmented Mode Switcher: Strip Foto (Cetak) vs Loop Animasi (Boomerang)
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp)
-                            .height(450.dp),
-                        contentAlignment = Alignment.Center
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(StudioSurface)
+                            .border(1.dp, Color(0x338B5CF6), RoundedCornerShape(14.dp))
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        if (uiState.finalStripBitmap != null) {
-                            Card(
-                                modifier = Modifier
-                                    .shadow(28.dp, RoundedCornerShape(16.dp))
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .border(1.dp, Color(0x338B5CF6), RoundedCornerShape(16.dp))
-                                    .testTag("final_strip_preview"),
-                                shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-                            ) {
-                                Image(
-                                    bitmap = uiState.finalStripBitmap.asImageBitmap(),
-                                    contentDescription = "Photo Strip Canvas",
-                                    modifier = Modifier
-                                        .widthIn(max = 320.dp)
-                                        .fillMaxSize(),
-                                    contentScale = ContentScale.Fit
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (!uiState.isLoopViewActive) StudioViolet else Color.Transparent)
+                                .clickable { onToggleLoopView(false) }
+                                .padding(vertical = 9.dp)
+                                .testTag("tab_strip_view"),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.PhotoLibrary,
+                                    contentDescription = null,
+                                    tint = if (!uiState.isLoopViewActive) Color.White else StudioTextSecondary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Strip Foto (Cetak)",
+                                    fontSize = 12.sp,
+                                    fontWeight = if (!uiState.isLoopViewActive) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (!uiState.isLoopViewActive) Color.White else StudioTextSecondary
                                 )
                             }
                         }
 
-                        if (uiState.isRenderingStrip) {
-                            Box(
-                                modifier = Modifier
-                                    .size(72.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xCC0F172A))
-                                    .border(2.dp, StudioViolet, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator(
-                                    color = StudioViolet,
-                                    strokeWidth = 3.dp,
-                                    modifier = Modifier.size(38.dp)
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (uiState.isLoopViewActive) StudioNeonPink else Color.Transparent)
+                                .clickable { onToggleLoopView(true) }
+                                .padding(vertical = 9.dp)
+                                .testTag("tab_loop_view"),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Movie,
+                                    contentDescription = null,
+                                    tint = if (uiState.isLoopViewActive) Color.White else StudioTextSecondary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Loop Animasi 🎬",
+                                    fontSize = 12.sp,
+                                    fontWeight = if (uiState.isLoopViewActive) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (uiState.isLoopViewActive) Color.White else StudioTextSecondary
                                 )
                             }
                         }
                     }
-                }
-            }
 
-            // Right Side: Editing Menu (Tabs)
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Segmented Mode Switcher: Strip Foto (Cetak) vs Loop Animasi (Boomerang)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(StudioSurface)
-                        .border(1.dp, Color(0x338B5CF6), RoundedCornerShape(14.dp))
-                        .padding(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(if (!uiState.isLoopViewActive) StudioViolet else Color.Transparent)
-                            .clickable { onToggleLoopView(false) }
-                            .padding(vertical = 9.dp)
-                            .testTag("tab_strip_view"),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.PhotoLibrary,
-                                contentDescription = null,
-                                tint = if (!uiState.isLoopViewActive) Color.White else StudioTextSecondary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Strip Foto (Cetak)",
-                                fontSize = 12.sp,
-                                fontWeight = if (!uiState.isLoopViewActive) FontWeight.Bold else FontWeight.Medium,
-                                color = if (!uiState.isLoopViewActive) Color.White else StudioTextSecondary
-                            )
-                        }
-                    }
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(if (uiState.isLoopViewActive) StudioNeonPink else Color.Transparent)
-                            .clickable { onToggleLoopView(true) }
-                            .padding(vertical = 9.dp)
-                            .testTag("tab_loop_view"),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Movie,
-                                contentDescription = null,
-                                tint = if (uiState.isLoopViewActive) Color.White else StudioTextSecondary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Loop Animasi 🎬",
-                                fontSize = 12.sp,
-                                fontWeight = if (uiState.isLoopViewActive) FontWeight.Bold else FontWeight.Medium,
-                                color = if (uiState.isLoopViewActive) Color.White else StudioTextSecondary
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-                
-                // Quick Action Buttons: Retake Foto & Posisi Foto (Moved to right menu)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // Button Retake Opsi
+                    // Quick Action Button: Opsi Retake Foto (Placed under switcher, above preview frame)
                     Button(
                         onClick = { showRetakeDialog = true },
                         modifier = Modifier
-                            .weight(1f)
+                            .fillMaxWidth()
+                            .height(38.dp)
                             .testTag("open_retake_dialog_button"),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = StudioSurfaceVariant
                         ),
-                        border = BorderStroke(1.dp, Brush.horizontalGradient(listOf(StudioNeonPink, StudioAmber)))
+                        border = BorderStroke(1.dp, Brush.horizontalGradient(listOf(StudioNeonPink, StudioAmber))),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.CameraAlt,
@@ -578,89 +512,408 @@ fun PreviewResultScreen(
                             tint = StudioNeonPink,
                             modifier = Modifier.size(16.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "Opsi Retake",
                             color = StudioTextPrimary,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
+                            fontSize = 12.sp
                         )
                     }
-                }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                // Customization Navigation Tabs
-                ScrollableTabRow(
-                    selectedTabIndex = selectedTabIndex,
-                    containerColor = StudioSurface,
-                    contentColor = StudioViolet,
-                    edgePadding = 16.dp,
-                    indicator = { tabPositions ->
-                        TabRowDefaults.SecondaryIndicator(
-                            modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
-                            color = StudioViolet
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    tabTitles.forEachIndexed { index, title ->
-                        Tab(
-                            selected = selectedTabIndex == index,
-                            onClick = { selectedTabIndex = index },
-                            text = {
-                                Text(
-                                    text = title,
-                                    fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (selectedTabIndex == index) StudioVioletLight else StudioTextSecondary
-                                )
+                    // Frame Preview Container - Dynamically scaled to tablet / mobile screen size
+                    val previewBoxModifier = if (isTablet) {
+                        Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    } else {
+                        Modifier
+                            .fillMaxWidth()
+                            .height((screenHeightDp * 0.52f).coerceIn(380.dp, 540.dp))
+                    }
+
+                    Box(
+                        modifier = previewBoxModifier,
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (uiState.isLoopViewActive) {
+                            LoopAnimationPlayer(
+                                photos = uiState.capturedPhotos,
+                                filter = uiState.selectedFilter,
+                                frameColor = uiState.selectedFrameColor,
+                                captionText = uiState.captionText,
+                                stickerEmoji = uiState.selectedSticker,
+                                loopConfig = uiState.loopConfig,
+                                isGeneratingGif = uiState.isGeneratingGif,
+                                isGeneratingMp4 = uiState.isGeneratingMp4,
+                                onSetLoopMode = onSetLoopMode,
+                                onSetLoopSpeed = onSetLoopSpeed,
+                                onSetLoopTransition = onSetLoopTransition,
+                                onSetLoopParticle = onSetLoopParticle,
+                                onTogglePlay = onToggleLoopPlaying,
+                                onSaveGif = onSaveGif,
+                                onShareGif = onShareGif,
+                                onSaveMp4 = onSaveMp4,
+                                onShareMp4 = onShareMp4,
+                                onShareToSpecificApp = onShareToSpecificApp,
+                                onOpenFullscreen = { onShowFullscreenLoop(true) },
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            BoxWithConstraints(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 4.dp, vertical = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                val containerW = maxWidth
+                                val containerH = maxHeight
+                                val containerAspect = containerW.value / containerH.value.coerceAtLeast(1f)
+
+                                val bmp = uiState.finalStripBitmap
+                                val stripAspect = if (bmp != null && bmp.height > 0) {
+                                    bmp.width.toFloat() / bmp.height.toFloat()
+                                } else {
+                                    0.5f
+                                }
+
+                                val cardModifier = if (stripAspect < containerAspect) {
+                                    Modifier
+                                        .fillMaxHeight(0.97f)
+                                        .aspectRatio(stripAspect)
+                                } else {
+                                    Modifier
+                                        .fillMaxWidth(0.97f)
+                                        .aspectRatio(stripAspect)
+                                }
+
+                                if (bmp != null) {
+                                    Card(
+                                        modifier = cardModifier
+                                            .shadow(
+                                                elevation = if (isTablet) 32.dp else 22.dp,
+                                                shape = RoundedCornerShape(16.dp),
+                                                ambientColor = Color.Black,
+                                                spotColor = StudioViolet
+                                            )
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .border(
+                                                width = if (isTablet) 2.dp else 1.5.dp,
+                                                brush = Brush.linearGradient(listOf(StudioViolet, StudioNeonPink.copy(alpha = 0.6f))),
+                                                shape = RoundedCornerShape(16.dp)
+                                            )
+                                            .testTag("final_strip_preview"),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+                                    ) {
+                                        Image(
+                                            bitmap = bmp.asImageBitmap(),
+                                            contentDescription = "Photo Strip Canvas",
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.FillBounds
+                                        )
+                                    }
+                                }
+
+                                if (uiState.isRenderingStrip) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(72.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xCC0F172A))
+                                            .border(2.dp, StudioViolet, CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(
+                                            color = StudioViolet,
+                                            strokeWidth = 3.dp,
+                                            modifier = Modifier.size(38.dp)
+                                        )
+                                    }
+                                }
                             }
-                        )
+                        }
                     }
                 }
+            }
 
-                // Tab Content
-                Box(
+            @Composable
+            fun EditingListMenu(
+                modifier: Modifier = Modifier
+            ) {
+                Column(
+                    modifier = modifier,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // Header Daftar Menu
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.FormatListBulleted,
+                                contentDescription = null,
+                                tint = StudioViolet,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Menu Sunting & Kustomisasi",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = StudioTextPrimary
+                            )
+                        }
+                        Text(
+                            text = "Model Daftar",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = StudioVioletLight,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(StudioViolet.copy(alpha = 0.15f))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+
+                    // Model Daftar Menu: 4 Pilihan Menu
+                    val editingListItems = listOf(
+                        Triple(
+                            0,
+                            "Sunting Foto",
+                            "Atur posisi foto, crop, & retake per slot"
+                        ),
+                        Triple(
+                            1,
+                            "Filter Warna",
+                            "Preset efek tone & warna cetakan"
+                        ),
+                        Triple(
+                            2,
+                            "Warna Canvas",
+                            "Warna latar bingkai & latar gambar kustom"
+                        ),
+                        Triple(
+                            3,
+                            "Teks & Acara",
+                            "Keterangan footer, tanggal, & stiker"
+                        )
+                    )
+
+                    editingListItems.forEach { (index, title, subtitle) ->
+                        val isExpanded = (selectedTabIndex == index)
+                        val icon = when (index) {
+                            0 -> Icons.Default.AutoFixHigh
+                            1 -> Icons.Default.Palette
+                            2 -> Icons.Default.FormatPaint
+                            else -> Icons.Default.TextFields
+                        }
+                        val iconColors = when (index) {
+                            0 -> listOf(StudioViolet, StudioVioletLight)
+                            1 -> listOf(StudioNeonPink, StudioAmber)
+                            2 -> listOf(Color(0xFF06B6D4), StudioViolet)
+                            else -> listOf(StudioAmber, StudioEmerald)
+                        }
+                        val badgeText = when (index) {
+                            0 -> "${uiState.capturedPhotos.size} Slot"
+                            1 -> uiState.selectedFilter.displayName
+                            2 -> if (uiState.useCustomCanvasImage) "Latar Gambar" else uiState.selectedFrameColor.name
+                            else -> if (uiState.captionText.isNotBlank()) "Kustom" else null
+                        }
+
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("menu_item_$index")
+                                .animateContentSize(animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isExpanded) Color(0xFF131D31) else StudioSurface
+                            ),
+                            border = if (isExpanded) {
+                                BorderStroke(1.5.dp, Brush.horizontalGradient(iconColors))
+                            } else {
+                                BorderStroke(1.dp, Color(0x228B5CF6))
+                            }
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                // Item Bar (Header)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            selectedTabIndex = if (isExpanded) -1 else index
+                                        }
+                                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(Brush.linearGradient(iconColors)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = icon,
+                                            contentDescription = title,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(12.dp))
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = title,
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = if (isExpanded) FontWeight.Bold else FontWeight.SemiBold,
+                                            color = if (isExpanded) Color.White else StudioTextPrimary
+                                        )
+                                        Text(
+                                            text = subtitle,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = StudioTextSecondary,
+                                            fontSize = 11.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    if (badgeText != null) {
+                                        Text(
+                                            text = badgeText,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = if (isExpanded) StudioVioletLight else StudioTextSecondary,
+                                            fontWeight = FontWeight.Medium,
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(Color(0x228B5CF6))
+                                                .padding(horizontal = 7.dp, vertical = 3.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                    }
+
+                                    val rotationAngle by animateFloatAsState(
+                                        targetValue = if (isExpanded) 180f else 0f,
+                                        animationSpec = tween(200),
+                                        label = "chevron_rotate"
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.KeyboardArrowDown,
+                                        contentDescription = if (isExpanded) "Tutup" else "Buka",
+                                        tint = if (isExpanded) StudioVioletLight else StudioTextSecondary,
+                                        modifier = Modifier
+                                            .size(22.dp)
+                                            .rotate(rotationAngle)
+                                    )
+                                }
+
+                                // Expanded Content
+                                if (isExpanded) {
+                                    HorizontalDivider(
+                                        thickness = 1.dp,
+                                        color = Color(0x228B5CF6)
+                                    )
+
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(14.dp)
+                                    ) {
+                                        when (index) {
+                                            0 -> PhotoEditingTab(
+                                                photos = uiState.capturedPhotos,
+                                                onOpenEditorSlot = onOpenPhotoEditor,
+                                                onRetakeSlot = onRetakeSinglePhoto,
+                                                onRetakeAll = onRetakeAll,
+                                                onReplaceFromGallery = { slotIndex ->
+                                                    slotToReplaceByGallery = slotIndex
+                                                    galleryLauncher.launch("image/*")
+                                                }
+                                            )
+                                            1 -> FilterSelectionTab(
+                                                selectedFilter = uiState.selectedFilter,
+                                                onSelectFilter = onSelectFilter
+                                            )
+                                            2 -> FrameColorSelectionTab(
+                                                selectedColor = uiState.selectedFrameColor,
+                                                onSelectColor = onSelectFrameColor,
+                                                useCustomCanvasImage = uiState.useCustomCanvasImage,
+                                                customCanvasImagePath = uiState.customCanvasImagePath,
+                                                onPickCustomCanvasImage = { canvasImagePickerLauncher.launch("image/*") },
+                                                onClearCustomCanvasImage = { onSetCustomCanvasSettings(false, "") }
+                                            )
+                                            3 -> TextAndEventCustomizationTab(
+                                                caption = uiState.captionText,
+                                                onCaptionChange = onUpdateCaption,
+                                                showDate = uiState.showDate,
+                                                onToggleDate = onToggleDate,
+                                                selectedSticker = uiState.selectedSticker,
+                                                onSelectSticker = onSelectSticker
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Add padding at the bottom of the right side menu
+                    Spacer(modifier = Modifier.height(100.dp))
+                }
+            }
+
+            if (isTabletOrWide) {
+                // Tablet / Desktop / Wide Landscape Layout: Side-by-side Row with dominant Preview Area
+                Row(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    PreviewArea(
+                        isTablet = true,
+                        screenHeightDp = screenHeight,
+                        modifier = Modifier
+                            .weight(1.35f)
+                            .fillMaxHeight()
+                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                    )
+                    EditingListMenu(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .verticalScroll(rememberScrollState())
+                            .padding(14.dp)
+                    )
+                }
+            } else {
+                // Mobile Phone (Hp) Portrait / Compact Layout: Large Full-Width Preview + Scrollable List Menu
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    when (selectedTabIndex) {
-                        0 -> PhotoEditingTab(
-                            photos = uiState.capturedPhotos,
-                            onOpenEditorSlot = onOpenPhotoEditor,
-                            onRetakeSlot = onRetakeSinglePhoto,
-                            onRetakeAll = onRetakeAll,
-                            onReplaceFromGallery = { slotIndex ->
-                                slotToReplaceByGallery = slotIndex
-                                galleryLauncher.launch("image/*")
-                            }
-                        )
-                        1 -> FilterSelectionTab(
-                            selectedFilter = uiState.selectedFilter,
-                            onSelectFilter = onSelectFilter
-                        )
-                        2 -> FrameColorSelectionTab(
-                            selectedColor = uiState.selectedFrameColor,
-                            onSelectColor = onSelectFrameColor,
-                            useCustomCanvasImage = uiState.useCustomCanvasImage,
-                            customCanvasImagePath = uiState.customCanvasImagePath,
-                            onPickCustomCanvasImage = { canvasImagePickerLauncher.launch("image/*") },
-                            onClearCustomCanvasImage = { onSetCustomCanvasSettings(false, "") }
-                        )
-                        3 -> TextAndEventCustomizationTab(
-                            caption = uiState.captionText,
-                            onCaptionChange = onUpdateCaption,
-                            showDate = uiState.showDate,
-                            onToggleDate = onToggleDate,
-                            selectedSticker = uiState.selectedSticker,
-                            onSelectSticker = onSelectSticker
-                        )
-                    }
+                    PreviewArea(
+                        isTablet = false,
+                        screenHeightDp = screenHeight,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    EditingListMenu(
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
-                
-                // Add padding at the bottom of the right side menu
-                Spacer(modifier = Modifier.height(100.dp))
             }
         }
 

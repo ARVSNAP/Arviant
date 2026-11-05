@@ -51,6 +51,8 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.CropPortrait
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -148,6 +150,7 @@ fun TemplateSelectionScreen(
     onStartBooth: () -> Unit,
     onOpenSettings: () -> Unit,
     onBackToWelcome: (() -> Unit)? = null,
+    onSyncCloudFrames: (() -> Unit)? = null,
     onImportPngLayout: ((Uri, (CustomLayoutConfig, Bitmap) -> Unit, (String) -> Unit) -> Unit)? = null,
     onUploadBackgroundImage: ((Uri, (String) -> Unit, (String) -> Unit) -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -161,8 +164,14 @@ fun TemplateSelectionScreen(
     var showLainnya4x6 by remember { mutableStateOf(false) }
     var showLainnyaA4 by remember { mutableStateOf(false) }
 
-    val externalPngLayouts = remember(uiState.savedCustomLayouts) {
-        uiState.savedCustomLayouts.filter { it.isPngOverlay && it.pngOverlayPath.isNotBlank() }
+    val allCustomAndCloudLayouts = remember(uiState.savedCustomLayouts, uiState.cloudFrames) {
+        uiState.cloudFrames + uiState.savedCustomLayouts
+    }
+    val cloudOnlyLayouts = remember(uiState.cloudFrames) {
+        uiState.cloudFrames
+    }
+    val externalPngLayouts = remember(allCustomAndCloudLayouts) {
+        allCustomAndCloudLayouts.filter { it.isPngOverlay && (it.pngOverlayPath.isNotBlank() || it.cloudFrameUrl.isNotBlank()) }
     }
     val externalPng2x6Layouts = remember(externalPngLayouts) {
         externalPngLayouts.filter { it.overlayAspectRatio >= 2.0f }
@@ -173,8 +182,8 @@ fun TemplateSelectionScreen(
     val externalPngA4Layouts = remember(externalPngLayouts) {
         externalPngLayouts.filter { it.overlayAspectRatio < 1.45f }
     }
-    val manualCustomLayouts = remember(uiState.savedCustomLayouts) {
-        uiState.savedCustomLayouts.filter { !it.isPngOverlay }
+    val manualCustomLayouts = remember(allCustomAndCloudLayouts) {
+        allCustomAndCloudLayouts.filter { !it.isPngOverlay }
     }
 
     var selectedCategoryIndex by remember { mutableIntStateOf(0) }
@@ -182,6 +191,7 @@ fun TemplateSelectionScreen(
 
     val coverFlowItems = remember(
         selectedCategoryIndex,
+        cloudOnlyLayouts,
         externalPng2x6Layouts,
         externalPng4x6Layouts,
         externalPngA4Layouts,
@@ -189,8 +199,8 @@ fun TemplateSelectionScreen(
     ) {
         val items = mutableListOf<CoverFlowLayoutItem>()
         when (selectedCategoryIndex) {
-            1 -> { // Semua PNG
-                externalPngLayouts.forEach {
+            1 -> { // Bingkai Cloud ☁️
+                cloudOnlyLayouts.forEach {
                     val type = when {
                         it.overlayAspectRatio >= 2.0f -> ShowcaseLayoutType.TWO_BY_SIX
                         it.overlayAspectRatio >= 1.45f -> ShowcaseLayoutType.FOUR_BY_SIX
@@ -211,10 +221,18 @@ fun TemplateSelectionScreen(
             5 -> { // Custom
                 manualCustomLayouts.forEach { items.add(CoverFlowLayoutItem.ManualCustom(it)) }
             }
-            else -> { // Semua Layout
-                externalPng2x6Layouts.forEach { items.add(CoverFlowLayoutItem.ExternalPng(it, ShowcaseLayoutType.TWO_BY_SIX)) }
-                externalPng4x6Layouts.forEach { items.add(CoverFlowLayoutItem.ExternalPng(it, ShowcaseLayoutType.FOUR_BY_SIX)) }
-                externalPngA4Layouts.forEach { items.add(CoverFlowLayoutItem.ExternalPng(it, ShowcaseLayoutType.PAPER_A4)) }
+            else -> { // Semua Layout (Cloud Frames + 2x6 + 4x6 + A4 + Custom)
+                cloudOnlyLayouts.forEach {
+                    val type = when {
+                        it.overlayAspectRatio >= 2.0f -> ShowcaseLayoutType.TWO_BY_SIX
+                        it.overlayAspectRatio >= 1.45f -> ShowcaseLayoutType.FOUR_BY_SIX
+                        else -> ShowcaseLayoutType.PAPER_A4
+                    }
+                    items.add(CoverFlowLayoutItem.ExternalPng(it, type))
+                }
+                externalPng2x6Layouts.filter { !it.isCloudFrame }.forEach { items.add(CoverFlowLayoutItem.ExternalPng(it, ShowcaseLayoutType.TWO_BY_SIX)) }
+                externalPng4x6Layouts.filter { !it.isCloudFrame }.forEach { items.add(CoverFlowLayoutItem.ExternalPng(it, ShowcaseLayoutType.FOUR_BY_SIX)) }
+                externalPngA4Layouts.filter { !it.isCloudFrame }.forEach { items.add(CoverFlowLayoutItem.ExternalPng(it, ShowcaseLayoutType.PAPER_A4)) }
                 manualCustomLayouts.forEach { items.add(CoverFlowLayoutItem.ManualCustom(it)) }
             }
         }
@@ -312,6 +330,34 @@ fun TemplateSelectionScreen(
                         }
                     },
                     actions = {
+                        // Cloud Frames Sync Button
+                        IconButton(
+                            onClick = { onSyncCloudFrames?.invoke() },
+                            modifier = Modifier.testTag("sync_cloud_frames_button")
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF06B6D4).copy(alpha = 0.22f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (uiState.isLoadingCloudFrames) {
+                                    CircularProgressIndicator(
+                                        color = StudioNeonCyan,
+                                        strokeWidth = 2.dp,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.CloudSync,
+                                        contentDescription = "Sinkronisasi Bingkai Cloud Google Sheets",
+                                        tint = StudioNeonCyan,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
                         IconButton(
                             onClick = { pngPickerLauncher.launch("image/*") },
                             modifier = Modifier.testTag("import_png_layout_button")
@@ -405,12 +451,12 @@ fun TemplateSelectionScreen(
             ) {
                 Text(
                     text = when (selectedCategoryIndex) {
-                        1 -> "Semua Frame PNG"
+                        1 -> "Bingkai Cloud ☁️ (${cloudOnlyLayouts.size} Tersedia)"
                         2 -> "Frame 2x6"
                         3 -> "Frame 4x6"
                         4 -> "Frame A4"
                         5 -> "Custom Layout"
-                        else -> "Semua Layout"
+                        else -> "Semua Layout (${coverFlowItems.size})"
                     },
                     color = StudioTextSecondary,
                     fontSize = 12.sp,
@@ -448,20 +494,56 @@ fun TemplateSelectionScreen(
                         .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.Layers, contentDescription = null, tint = StudioTextSecondary, modifier = Modifier.size(48.dp))
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Text("Belum Ada Template Layout", color = StudioTextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text("Import frame PNG dari galeri perangkat Anda", color = StudioTextSecondary, fontSize = 12.sp)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(
-                            onClick = { pngPickerLauncher.launch("image/*") },
-                            colors = ButtonDefaults.buttonColors(containerColor = StudioViolet)
+                    if (selectedCategoryIndex == 1) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(24.dp)
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("+ Import Frame PNG")
+                            if (uiState.isLoadingCloudFrames) {
+                                CircularProgressIndicator(color = StudioNeonCyan, modifier = Modifier.size(44.dp))
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text("Mengunduh Bingkai Cloud...", color = StudioTextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("Menghubungkan ke Google Sheets Apps Script", color = StudioTextSecondary, fontSize = 12.sp)
+                            } else {
+                                Icon(Icons.Default.CloudDownload, contentDescription = null, tint = StudioNeonCyan, modifier = Modifier.size(48.dp))
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text("Belum Ada Bingkai Cloud", color = StudioTextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = uiState.cloudFramesError ?: "Sinkronkan frame dari Google Sheets Apps Script Anda",
+                                    color = StudioTextSecondary,
+                                    fontSize = 12.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(
+                                    onClick = { onSyncCloudFrames?.invoke() },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                                    modifier = Modifier.testTag("empty_state_sync_cloud_button")
+                                ) {
+                                    Icon(Icons.Default.CloudSync, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Sinkronkan Sekarang")
+                                }
+                            }
+                        }
+                    } else {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.Layers, contentDescription = null, tint = StudioTextSecondary, modifier = Modifier.size(48.dp))
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text("Belum Ada Template Layout", color = StudioTextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Import frame PNG dari galeri perangkat Anda", color = StudioTextSecondary, fontSize = 12.sp)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(
+                                onClick = { pngPickerLauncher.launch("image/*") },
+                                colors = ButtonDefaults.buttonColors(containerColor = StudioViolet)
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("+ Import Frame PNG")
+                            }
                         }
                     }
                 }
@@ -704,7 +786,7 @@ fun TemplateSelectionScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            val categories = listOf("Semua", "PNG 2x6", "PNG 4x6", "PNG A4", "Custom")
+                            val categories = listOf("Semua", "Cloud ☁️", "PNG 2x6", "PNG 4x6", "PNG A4", "Custom")
                             categories.forEachIndexed { catIdx, catName ->
                                 val isCatSelected = selectedCategoryIndex == catIdx
                                 Box(
@@ -2398,16 +2480,7 @@ fun CoverFlowCardItem(
                 Brush.horizontalGradient(listOf(StudioViolet, StudioNeonPink, StudioNeonCyan))
             )
         } else {
-            BorderStroke(
-                1.5.dp,
-                Brush.verticalGradient(
-                    listOf(
-                        Color.White.copy(alpha = 0.6f),
-                        Color.White.copy(alpha = 0.15f),
-                        StudioViolet.copy(alpha = 0.4f)
-                    )
-                )
-            )
+            BorderStroke(1.dp, StudioViolet.copy(alpha = 0.35f))
         }
 
         Card(
@@ -2415,7 +2488,7 @@ fun CoverFlowCardItem(
                 .width(cardWidth)
                 .height(cardHeight)
                 .shadow(
-                    elevation = if (isCentered) 28.dp else 12.dp,
+                    elevation = if (isCentered) 24.dp else 8.dp,
                     shape = RoundedCornerShape(22.dp),
                     ambientColor = if (isSelected) StudioViolet else Color.Black,
                     spotColor = if (isSelected) StudioNeonCyan else Color.Black
@@ -2423,7 +2496,7 @@ fun CoverFlowCardItem(
                 .clickable { onSelect() },
             shape = RoundedCornerShape(22.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xDD0B0F19)
+                containerColor = Color(0xFF0F172A)
             ),
             border = cardBorder,
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -2431,15 +2504,7 @@ fun CoverFlowCardItem(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                Color.White.copy(alpha = 0.08f),
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.2f)
-                            )
-                        )
-                    ),
+                    .background(Color(0xFF0F172A)),
                 contentAlignment = Alignment.Center
             ) {
                 when (item) {
@@ -2492,22 +2557,6 @@ fun CoverFlowCardItem(
                         )
                     }
                 }
-
-                // Glass Shine / Reflection Overlay on top
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(140.dp)
-                        .align(Alignment.TopCenter)
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    Color.White.copy(alpha = 0.12f),
-                                    Color.Transparent
-                                )
-                            )
-                        )
-                )
             }
         }
     }

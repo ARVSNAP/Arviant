@@ -24,7 +24,7 @@ class ExampleRobolectricTest {
     fun `read string from context`() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val appName = context.getString(R.string.app_name)
-        assertEquals("Photo Booth", appName)
+        assertEquals("Arvin Booth™", appName)
     }
 
     @Test
@@ -60,10 +60,18 @@ class ExampleRobolectricTest {
     @Test
     fun `verify welcome loop animation settings defaults`() {
         val defaultSettings = com.example.model.AppSettings()
-        assertEquals(com.example.model.WelcomeLoopSource.BUILTIN_ANIMATION, defaultSettings.welcomeLoopSource)
+        assertEquals("preset_photo_reel", defaultSettings.activeLoopAnimationId)
         assertEquals(com.example.model.WelcomeLoopPlacement.BACKGROUND_FULL, defaultSettings.welcomeLoopPlacement)
-        assertEquals("", defaultSettings.welcomeExternalMediaUri)
+        assertEquals(true, defaultSettings.isWelcomeLoopEnabled)
         assertEquals(true, defaultSettings.isWelcomeLoopSoundMuted)
+    }
+
+    @Test
+    fun `verify cloud frame drive url resolution`() {
+        val repo = com.example.util.CloudFrameRepository(ApplicationProvider.getApplicationContext())
+        val driveUrl = "https://drive.google.com/file/d/1-NMHeBU9KFhoVjmGW6XukRqVDXN9a2xn/view?usp=drivesdk"
+        val resolved = repo.resolveDirectImageUrl(driveUrl)
+        assertEquals("https://lh3.googleusercontent.com/d/1-NMHeBU9KFhoVjmGW6XukRqVDXN9a2xn", resolved)
     }
 
     @Test

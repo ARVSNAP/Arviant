@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.GridView
@@ -155,6 +156,9 @@ fun SettingsScreen(
     var editUseCustomQris by remember { mutableStateOf(settings.useCustomQrisImage) }
     var editCustomQrisPath by remember { mutableStateOf(settings.customQrisImagePath) }
 
+    var showGoogleSheetsDialog by remember { mutableStateOf(false) }
+    var editGoogleSheetsUrl by remember { mutableStateOf(settings.googleSheetsScriptUrl) }
+
     val qrisLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -190,6 +194,7 @@ fun SettingsScreen(
         editQrisUrl = settings.qrisPaymentUrl
         editUseCustomQris = settings.useCustomQrisImage
         editCustomQrisPath = settings.customQrisImagePath
+        editGoogleSheetsUrl = settings.googleSheetsScriptUrl
         editWelcomeTitle = settings.welcomeTitle
         editWelcomeTagline = settings.welcomeTagline
         editWelcomeDesc = settings.welcomeDescription
@@ -1170,6 +1175,61 @@ fun SettingsScreen(
                                 Text("Kelola Cloudinary & Link QRIS", color = StudioTextPrimary)
                             }
                         }
+
+                        // Google Sheets Cloud Frames Settings Card
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = StudioSurfaceVariant.copy(alpha = 0.5f)),
+                            border = BorderStroke(1.dp, Color(0xFF06B6D4).copy(alpha = 0.4f))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.CloudSync,
+                                            contentDescription = null,
+                                            tint = StudioNeonCyan,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "Bingkai Cloud (Google Sheets)",
+                                            fontWeight = FontWeight.Bold,
+                                            color = StudioTextPrimary,
+                                            fontSize = 14.sp
+                                        )
+                                    }
+                                }
+
+                                Text(
+                                    text = "URL Endpoint Apps Script:\n${settings.googleSheetsScriptUrl}",
+                                    fontSize = 11.sp,
+                                    color = StudioTextSecondary,
+                                    maxLines = 2,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+
+                                if (!settings.isKioskMode || isPinUnlocked) {
+                                    OutlinedButton(
+                                        onClick = { showGoogleSheetsDialog = true },
+                                        shape = RoundedCornerShape(12.dp),
+                                        modifier = Modifier.fillMaxWidth().testTag("edit_google_sheets_url_button")
+                                    ) {
+                                        Icon(Icons.Default.Link, contentDescription = null, tint = StudioNeonCyan)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Kelola URL Google Sheets Apps Script", color = StudioTextPrimary)
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1590,6 +1650,51 @@ fun SettingsScreen(
                         Text("Batal", color = StudioTextSecondary)
                     }
                 }
+            )
+        }
+
+        // Dialog Konfigurasi Google Sheets Apps Script
+        if (showGoogleSheetsDialog) {
+            AlertDialog(
+                onDismissRequest = { showGoogleSheetsDialog = false },
+                title = { Text("Konfigurasi Google Sheets Apps Script", fontWeight = FontWeight.Bold, color = StudioTextPrimary) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            "Masukkan URL Google Apps Script Web App yang mengembalikan daftar frame cloud dalam format JSON dari spreadsheet Anda.",
+                            color = StudioTextSecondary,
+                            fontSize = 12.sp
+                        )
+                        OutlinedTextField(
+                            value = editGoogleSheetsUrl,
+                            onValueChange = { editGoogleSheetsUrl = it },
+                            label = { Text("URL Google Apps Script Exec") },
+                            modifier = Modifier.fillMaxWidth().testTag("google_sheets_url_input"),
+                            singleLine = false,
+                            maxLines = 4,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            viewModel.updateGoogleSheetsScriptUrl(editGoogleSheetsUrl.trim())
+                            showGoogleSheetsDialog = false
+                            android.widget.Toast.makeText(context, "URL Google Sheets berhasil disimpan!", android.widget.Toast.LENGTH_SHORT).show()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = StudioNeonCyan),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Simpan & Sinkron", fontWeight = FontWeight.Bold, color = Color.Black)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showGoogleSheetsDialog = false }) {
+                        Text("Batal", color = StudioTextSecondary)
+                    }
+                },
+                containerColor = StudioSurface
             )
         }
     }

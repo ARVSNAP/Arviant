@@ -542,6 +542,18 @@ object BitmapUtils {
                     inPreferredConfig = Bitmap.Config.ARGB_8888
                 }
                 BitmapFactory.decodeFile(overlayFile.absolutePath, opts)
+            } else if (customConfig.cloudFrameUrl.isNotBlank()) {
+                val url = java.net.URL(customConfig.cloudFrameUrl)
+                val conn = url.openConnection() as java.net.HttpURLConnection
+                conn.instanceFollowRedirects = true
+                conn.connectTimeout = 10000
+                conn.readTimeout = 20000
+                conn.inputStream.use { input ->
+                    val opts = BitmapFactory.Options().apply {
+                        inPreferredConfig = Bitmap.Config.ARGB_8888
+                    }
+                    BitmapFactory.decodeStream(input, null, opts)
+                }
             } else null
         } catch (_: Exception) {
             null

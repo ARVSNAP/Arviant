@@ -46,6 +46,7 @@ import com.example.model.PhotoAlignment
 import com.example.model.PhotoSlotAdjustment
 import com.example.util.BitmapUtils
 import com.example.util.SoundEffectManager
+import com.example.util.CloudFrameRepository
 import com.example.util.CloudinaryResult
 import com.example.util.CloudinaryService
 import com.example.util.CustomLayoutRepository
@@ -71,6 +72,7 @@ class PhotoBoothViewModel(application: Application) : AndroidViewModel(applicati
     private val settingsRepository = SettingsRepository(application.applicationContext)
     private val customLayoutRepository = CustomLayoutRepository(application.applicationContext)
     private val loopRepository = LoopAnimationRepository(application.applicationContext)
+    private val cloudFrameRepository = CloudFrameRepository(application.applicationContext)
     private val _uiState = MutableStateFlow(PhotoBoothUiState())
     val uiState: StateFlow<PhotoBoothUiState> = _uiState.asStateFlow()
 
@@ -102,6 +104,14 @@ class PhotoBoothViewModel(application: Application) : AndroidViewModel(applicati
             }
         }
 
+        // Load cached cloud frames from local storage
+        val cachedCloudFrames = cloudFrameRepository.loadCachedFrames()
+        if (cachedCloudFrames.isNotEmpty()) {
+            _uiState.update { current ->
+                current.copy(cloudFrames = cachedCloudFrames)
+            }
+        }
+
         // Listen to settings changes from DataStore
         viewModelScope.launch {
             settingsRepository.settingsFlow.collect { settings ->
@@ -110,6 +120,36 @@ class PhotoBoothViewModel(application: Application) : AndroidViewModel(applicati
                         settings = settings,
                         selectedTimerDuration = settings.defaultCountdownSeconds,
                         captionText = settings.eventSubtitle
+                    )
+                }
+            }
+        }
+
+        // Automatically sync cloud frames from Google Sheets Apps Script
+        syncCloudFrames(force = false)
+    }
+
+    /**
+     * Synchronizes frames from Google Sheets Apps Script
+     */
+    fun syncCloudFrames(force: Boolean = false) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingCloudFrames = true, cloudFramesError = null) }
+            val scriptUrl = _uiState.value.settings.googleSheetsScriptUrl
+            val result = cloudFrameRepository.fetchCloudFrames(scriptUrl)
+            result.onSuccess { frames ->
+                _uiState.update {
+                    it.copy(
+                        cloudFrames = frames,
+                        isLoadingCloudFrames = false,
+                        cloudFramesError = null
+                    )
+                }
+            }.onFailure { err ->
+                _uiState.update {
+                    it.copy(
+                        isLoadingCloudFrames = false,
+                        cloudFramesError = err.message ?: "Gagal memuat bingkai cloud"
                     )
                 }
             }
@@ -477,26 +517,30 @@ class PhotoBoothViewModel(application: Application) : AndroidViewModel(applicati
             
             // Trigger auto-crop
             viewModelScope.launch {
-                val faceRect = com.example.util.FaceDetectionUtil.detectFace(bitmap)
-                if (faceRect != null) {
-                    val bitmapW = bitmap.width.toFloat()
-                    val bitmapH = bitmap.height.toFloat()
-                    
-                    val faceCenterX = faceRect.centerX().toFloat()
-                    val faceCenterY = faceRect.centerY().toFloat()
-                    
-                    val panX = (faceCenterX / bitmapW) - 0.5f
-                    val panY = (faceCenterY / bitmapH) - 0.5f
-                    
-                    val adjustment = com.example.model.PhotoSlotAdjustment(
-                        scaleMode = com.example.model.PhotoScaleMode.CROP_FILL,
-                        alignment = com.example.model.PhotoAlignment.CENTER,
-                        panX = panX * 2.0f, // Adjust scale factor as needed
-                        panY = panY * 2.0f,
-                        zoom = 1.5f, // Zoom in to focus on face
-                        slotBgColorHex = 0xFFFFFFFF
-                    )
-                    updateSlotAdjustment(slotIndex, adjustment, 0L)
+                try {
+                    val faceRect = com.example.util.FaceDetectionUtil.detectFace(bitmap)
+                    if (faceRect != null) {
+                        val bitmapW = bitmap.width.toFloat()
+                        val bitmapH = bitmap.height.toFloat()
+                        
+                        val faceCenterX = faceRect.centerX().toFloat()
+                        val faceCenterY = faceRect.centerY().toFloat()
+                        
+                        val panX = (faceCenterX / bitmapW) - 0.5f
+                        val panY = (faceCenterY / bitmapH) - 0.5f
+                        
+                        val adjustment = com.example.model.PhotoSlotAdjustment(
+                            scaleMode = com.example.model.PhotoScaleMode.CROP_FILL,
+                            alignment = com.example.model.PhotoAlignment.CENTER,
+                            panX = panX * 2.0f, // Adjust scale factor as needed
+                            panY = panY * 2.0f,
+                            zoom = 1.5f, // Zoom in to focus on face
+                            slotBgColorHex = 0xFFFFFFFF
+                        )
+                        updateSlotAdjustment(slotIndex, adjustment, 0L)
+                    }
+                } catch (e: Throwable) {
+                    Log.w("PhotoBoothViewModel", "Auto-crop face detection skipped: ${e.message}")
                 }
             }
             
@@ -1600,6 +1644,13 @@ class PhotoBoothViewModel(application: Application) : AndroidViewModel(applicati
 
     fun updateAutoRotateLoopPlaylist(enabled: Boolean) {
         viewModelScope.launch { settingsRepository.updateAutoRotateLoopPlaylist(enabled) }
+    }
+
+    fun updateGoogleSheetsScriptUrl(url: String) {
+        viewModelScope.launch {
+            settingsRepository.updateGoogleSheetsScriptUrl(url)
+            syncCloudFrames(force = true)
+        }
     }
 
     private fun playBeepSound() {

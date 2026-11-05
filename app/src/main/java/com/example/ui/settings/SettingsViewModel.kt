@@ -248,6 +248,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun updateGoogleSheetsScriptUrl(url: String) {
+        viewModelScope.launch {
+            repository.updateGoogleSheetsScriptUrl(url)
+        }
+    }
+
     fun saveCustomThemeBackgroundImage(uri: Uri, onSaved: (String) -> Unit) {
         viewModelScope.launch {
             val savedPath = repository.saveCustomThemeBackgroundImage(uri)

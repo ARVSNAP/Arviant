@@ -521,7 +521,8 @@ data class AppSettings(
     val useCustomThemeBackground: Boolean = true,
     val customThemeBackgroundDim: Float = 0.25f,
     val customThemeBackgroundPath: String = "",
-    val gridColumnCount: Int = 2
+    val gridColumnCount: Int = 2,
+    val googleSheetsScriptUrl: String = "https://script.google.com/macros/s/AKfycbxORrAmfXoCBUkBGYoXZebfNgcGo77clzBwhRWPA4GEmttclZS_NTMpoCwnLeuhEVeOhA/exec"
 )
 
 /**
@@ -581,7 +582,11 @@ data class CustomLayoutConfig(
     val isPngOverlay: Boolean = false,
     val pngOverlayPath: String = "",
     val pngSlots: List<PngSlotRect> = emptyList(),
-    val overlayAspectRatio: Float = 1.5f // height / width
+    val overlayAspectRatio: Float = 1.5f, // height / width
+    val isCloudFrame: Boolean = false,
+    val cloudFrameUrl: String = "",
+    val cloudOrientation: String = "",
+    val cloudStatus: String = "Active"
 )
 
 /**
@@ -595,6 +600,9 @@ data class PhotoBoothUiState(
     val showCustomLayoutDesigner: Boolean = false,
     val editingCustomLayoutConfig: CustomLayoutConfig? = null,
     val savedCustomLayouts: List<CustomLayoutConfig> = emptyList(),
+    val cloudFrames: List<CustomLayoutConfig> = emptyList(),
+    val isLoadingCloudFrames: Boolean = false,
+    val cloudFramesError: String? = null,
     val capturedPhotos: List<Bitmap> = emptyList(),
     val originalCapturedPhotos: List<Bitmap> = emptyList(),
     val showPhotoEditorDialog: Boolean = false,

@@ -1312,15 +1312,36 @@ fun ExternalPng2x6Card(
                     }
                 }
 
-                // Overlay PNG
-                if (customConfig.pngOverlayPath.isNotBlank()) {
-                    val file = File(customConfig.pngOverlayPath)
-                    if (file.exists()) {
-                        AsyncImage(
-                            model = file,
-                            contentDescription = customConfig.name,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.FillBounds
+                // Overlay PNG (from local cached file or direct cloud URL)
+                val imageModel: Any? = when {
+                    customConfig.pngOverlayPath.isNotBlank() && File(customConfig.pngOverlayPath).exists() -> File(customConfig.pngOverlayPath)
+                    customConfig.cloudFrameUrl.isNotBlank() -> customConfig.cloudFrameUrl
+                    else -> null
+                }
+                if (imageModel != null) {
+                    AsyncImage(
+                        model = imageModel,
+                        contentDescription = customConfig.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.FillBounds
+                    )
+                }
+
+                // Cloud badge for frames synced from Google Sheets
+                if (customConfig.isCloudFrame) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(4.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Brush.horizontalGradient(listOf(Color(0xFF06B6D4), Color(0xFF8B5CF6))))
+                            .padding(horizontal = 5.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "☁️ CLOUD",
+                            fontSize = 7.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color.White
                         )
                     }
                 }
@@ -1372,15 +1393,36 @@ fun ExternalPngA4Card(
                     }
                 }
 
-                // Overlay PNG
-                if (customConfig.pngOverlayPath.isNotBlank()) {
-                    val file = File(customConfig.pngOverlayPath)
-                    if (file.exists()) {
-                        AsyncImage(
-                            model = file,
-                            contentDescription = customConfig.name,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.FillBounds
+                // Overlay PNG (from local cached file or direct cloud URL)
+                val imageModel: Any? = when {
+                    customConfig.pngOverlayPath.isNotBlank() && File(customConfig.pngOverlayPath).exists() -> File(customConfig.pngOverlayPath)
+                    customConfig.cloudFrameUrl.isNotBlank() -> customConfig.cloudFrameUrl
+                    else -> null
+                }
+                if (imageModel != null) {
+                    AsyncImage(
+                        model = imageModel,
+                        contentDescription = customConfig.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.FillBounds
+                    )
+                }
+
+                // Cloud badge for frames synced from Google Sheets
+                if (customConfig.isCloudFrame) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(4.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Brush.horizontalGradient(listOf(Color(0xFF06B6D4), Color(0xFF8B5CF6))))
+                            .padding(horizontal = 5.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "☁️ CLOUD",
+                            fontSize = 7.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color.White
                         )
                     }
                 }
@@ -1432,15 +1474,36 @@ fun ExternalPng4x6Card(
                     }
                 }
 
-                // Overlay PNG
-                if (customConfig.pngOverlayPath.isNotBlank()) {
-                    val file = File(customConfig.pngOverlayPath)
-                    if (file.exists()) {
-                        AsyncImage(
-                            model = file,
-                            contentDescription = customConfig.name,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.FillBounds
+                // Overlay PNG (from local cached file or direct cloud URL)
+                val imageModel: Any? = when {
+                    customConfig.pngOverlayPath.isNotBlank() && File(customConfig.pngOverlayPath).exists() -> File(customConfig.pngOverlayPath)
+                    customConfig.cloudFrameUrl.isNotBlank() -> customConfig.cloudFrameUrl
+                    else -> null
+                }
+                if (imageModel != null) {
+                    AsyncImage(
+                        model = imageModel,
+                        contentDescription = customConfig.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.FillBounds
+                    )
+                }
+
+                // Cloud badge for frames synced from Google Sheets
+                if (customConfig.isCloudFrame) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(4.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Brush.horizontalGradient(listOf(Color(0xFF06B6D4), Color(0xFF8B5CF6))))
+                            .padding(horizontal = 5.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "☁️ CLOUD",
+                            fontSize = 7.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color.White
                         )
                     }
                 }
